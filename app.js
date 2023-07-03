@@ -91,22 +91,6 @@ app.put("/edit",async (req,res)=>{
     }
 })
 
-app.delete("/delete",async (req,res)=>{
-    try{
-    const resp= await Note.findOneAndUpdate({_id:req.body._id,email:req.body.email,active:true},{active:false});
-        if(resp!=null)
-        {
-            res.status(200).json({...resp,"message":"note updated successfully"});
-        }
-        else{
-            res.status(400).json({"message":"invalid request"});
-        }
-    }
-    catch(e)
-    {
-        console.log(e);
-    }
-})
 
 app.get("/notes",async (req,res)=>{
    // console.log(req.header["accessToken"]);
@@ -115,6 +99,28 @@ app.get("/notes",async (req,res)=>{
     const notes=await Note.find({email:req.query.user,active:true});
     res.status(200).json(notes);
     //res.send({...req.query,...req.headers});
+})
+
+app.delete("/delete",async (req,res)=>{
+
+     // console.log(req.header["accessToken"]);
+    //decrypt access token
+    try{
+        const resp= await Note.findOneAndUpdate({_id:req.headers._id,email:req.headers.email,active:true},{active:false});
+        console.log(req.headers._id,"  ",req.headers.email);
+            if(resp!=null)
+            {
+                res.status(200).json({"message":"note deleted successfully"});
+            }
+            else{
+                res.status(400).json({"message":"invalid request"});
+            }
+        }
+        catch(e)
+        {
+            console.log(e);
+        }
+
 })
 
 app.get('/',async (req,res)=>{
