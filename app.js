@@ -73,10 +73,13 @@ app.post("/newnote",async (req,res)=>{
 app.put("/edit",async (req,res)=>{
     try{
         const date=new Date();
+        console.log("put body",req.body);
+        console.log("headers",req.headers);
         const updatednote={...req.body,metaData:`{date:${date.toDateString()},time:${date.toTimeString()}}`};
-        const resp= await Note.findOneAndUpdate({_id:req.body._id,email:req.body.email},updatednote);
+        const resp= await Note.findOneAndUpdate({_id:req.headers._id,email:req.headers.email},updatednote);
         if(resp!=null)
         {
+            console.log("note updated");
             res.status(200).json({"message":"note updated successfully"});
         }
         else
