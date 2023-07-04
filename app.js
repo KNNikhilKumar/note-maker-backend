@@ -2,8 +2,12 @@ const express=require('express');
 require('./db/config');
 const User=require('./db/user');
 const Note=require('./db/note');
+const jwt=require('jsonwebtoken');
+const ENC_KEY="I-SHOULD-GET-AN-OFFER";
+
 const app=express();
 const cors=require('cors');
+const { connection } = require('mongoose');
 app.use(express.json());
 app.use(cors());
 app.listen(8000,()=>console.log('server started'));
@@ -19,7 +23,20 @@ app.post('/register',async (req,res)=>
         {
             const user=new User(req.body);
             const resp=await user.save();
-            res.status(200).send(req.body);
+            const userData={...req.body};
+            delete userData.password;
+            const encData=userData.email;
+            jwt.sign({encData},ENC_KEY,(err,token)=>{
+                if(err)
+                {
+                    res.status(500).json({"message":"server side error !!!"});
+                    
+                }
+                else
+                {
+                    res.status(200).json({...userData,accessToken:token});
+                }
+            })
         }
         else
         {
@@ -37,13 +54,26 @@ app.post('/register',async (req,res)=>
 
 app.post('/login',async (req,res)=>{
     try{
-        console.log(req.body);
+       // console.log(req.body);
         const user=await User.findOne(req.body);
-        console.log(req.body,user);
+        //console.log(req.body,user);
         if(user!=null&&req.body.email&&req.body.password)
         {
             console.log("inside if")
-            res.status(200).json(req.body);
+            const userData={...req.body};
+            delete userData.password;
+            const encData=userData.email;
+            jwt.sign({encData},ENC_KEY,(err,token)=>{
+                if(err)
+                {
+                    res.status(500).json({"message":"server side error !!!"});
+                }
+                else
+                {
+                    console.log("accessToken",token);
+                    res.status(200).json({...userData,accessToken:token});
+                }
+            })
         }
         else{
         res.status(401).json({'message':'invalid credentials'});
@@ -56,11 +86,13 @@ app.post('/login',async (req,res)=>{
     }
 })
 
-app.post("/newnote",async (req,res)=>{
+app.post("/newnote",verifyAccessToken,async (req,res)=>{
     try{
+        console.log("inside post");
         const date=new Date();
         const newnote=new Note({...req.body,metaData:`{date:${date.toDateString()},time:${date.toTimeString()}}`});
         const resp=await newnote.save();
+        console.log("new note accessToken",req.headers.accesstoken);
         res.status(200).json(resp);
     }   
     catch(e)
@@ -70,13 +102,14 @@ app.post("/newnote",async (req,res)=>{
     }
 })
 
-app.put("/edit",async (req,res)=>{
+app.put("/edit",verifyAccessToken,async (req,res)=>{
     try{
         const date=new Date();
-        console.log("put body",req.body);
-        console.log("headers",req.headers);
+        // console.log("put body",req.body);
+        // console.log("headers",req.headers);
         const updatednote={...req.body,metaData:`{date:${date.toDateString()},time:${date.toTimeString()}}`};
         const resp= await Note.findOneAndUpdate({_id:req.headers._id,email:req.headers.email},updatednote);
+        console.log("edit accessToken",req.headers.accesstoken);
         if(resp!=null)
         {
             console.log("note updated");
@@ -95,22 +128,31 @@ app.put("/edit",async (req,res)=>{
 })
 
 
-app.get("/notes",async (req,res)=>{
+app.get("/notes",verifyAccessToken,async (req,res)=>{
    // console.log(req.header["accessToken"]);
     //decrypt access token
     //fetch recoreds from db
-    const notes=await Note.find({email:req.query.user,active:true});
-    res.status(200).json(notes);
+    try
+    {
+        const notes=await Note.find({email:req.query.user,active:true});
+        console.log("notes accessToken",req.headers.accesstoken);
+        res.status(200).json(notes);
+    }
+    catch(e)
+    {
+        res.status(500).json({"message":"server side error"});
+    }
+   
     //res.send({...req.query,...req.headers});
 })
 
-app.delete("/delete",async (req,res)=>{
+app.delete("/delete",verifyAccessToken,async (req,res)=>{
 
      // console.log(req.header["accessToken"]);
     //decrypt access token
     try{
         const resp= await Note.findOneAndUpdate({_id:req.headers._id,email:req.headers.email,active:true},{active:false});
-        console.log(req.headers._id,"  ",req.headers.email);
+        console.log("delete accessToken",req.headers.accesstoken);
             if(resp!=null)
             {
                 res.status(200).json({"message":"note deleted successfully"});
@@ -125,6 +167,21 @@ app.delete("/delete",async (req,res)=>{
         }
 
 })
+
+async function verifyAccessToken(req,res,next){
+
+        const jwtv=await jwt.decode(req.headers.accesstoken);
+        console.log("jwtv",jwtv);
+        if(jwtv!=null&&jwtv.encData&&jwtv.encData==req.headers.email)
+        {
+            console.log("inside next");
+            next();
+        }
+        else
+        {
+            res.json(420).json({"message":"wrong attempt"});
+        }
+}
 
 app.get('/',async (req,res)=>{
     const records=await User.find({});
