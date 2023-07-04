@@ -125,7 +125,7 @@ app.put("/edit",verifyAccessToken,async (req,res)=>{
         const date=new Date();
         // console.log("put body",req.body);
         // console.log("headers",req.headers);
-        const updatednote={...req.body,metaData:`{date:${date.toDateString()},time:${date.toTimeString()}}`};
+        const updatednote={...req.body,metaData:`date:${date.toDateString()}---time:${date.toTimeString()}`};
         const resp= await Note.findOneAndUpdate({_id:req.headers._id,email:req.headers.email},updatednote);
         console.log("edit accessToken",req.headers.accesstoken);
         if(resp!=null)
