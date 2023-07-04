@@ -200,9 +200,3 @@ async function verifyAccessToken(req,res,next){
             res.json(420).json({"message":"wrong attempt"});
         }
 }
-
-app.get('/',async (req,res)=>{
-    const records=await User.find({});
-    console.log(records);
-    res.send(records);
-})
