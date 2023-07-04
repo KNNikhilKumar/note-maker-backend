@@ -108,7 +108,7 @@ app.post("/newnote",verifyAccessToken,async (req,res)=>{
     try{
         console.log("inside post");
         const date=new Date();
-        const newnote=new Note({...req.body,metaData:`{date:${date.toDateString()},time:${date.toTimeString()}}`});
+        const newnote=new Note({...req.body,metaData:`date:${date.toDateString()},time:${date.toTimeString()}`});
         const resp=await newnote.save();
         console.log("new note accessToken",req.headers.accesstoken);
         res.status(200).json(resp);
