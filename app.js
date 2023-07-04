@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express=require('express');
 require('./db/config');
 const User=require('./db/user');
@@ -5,14 +6,14 @@ const Note=require('./db/note');
 const jwt=require('jsonwebtoken');
 const bcrypt=require('bcryptjs');
 
-const ENC_KEY="I-SHOULD-GET-AN-OFFER";
+const ENC_KEY=process.env.ENC_KEY;
 
 const app=express();
 const cors=require('cors');
 const { connection } = require('mongoose');
 app.use(express.json());
 app.use(cors());
-app.listen(8000,()=>console.log('server started'));
+app.listen(process.env.PORT||8000,()=>console.log('server started'));
 
 app.post('/register',async (req,res)=>
 {

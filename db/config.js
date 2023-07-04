@@ -1,2 +1,3 @@
+require('dotenv').config();
 const mongoose=require('mongoose');
-mongoose.connect("mongodb://localhost:27017/note-maker");
+mongoose.connect(process.env.DB_URL);
