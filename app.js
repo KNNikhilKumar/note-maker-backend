@@ -3,6 +3,8 @@ require('./db/config');
 const User=require('./db/user');
 const Note=require('./db/note');
 const jwt=require('jsonwebtoken');
+const bcrypt=require('bcryptjs');
+
 const ENC_KEY="I-SHOULD-GET-AN-OFFER";
 
 const app=express();
@@ -21,9 +23,12 @@ app.post('/register',async (req,res)=>
 
         if(already==null)
         {
-            const user=new User(req.body);
+            const salt=await bcrypt.genSalt(10);
+            const secPass=await bcrypt.hash(req.body.password,salt);
+            console.log(secPass);
+            const user=new User({...req.body,password:secPass});
             const resp=await user.save();
-            const userData={...req.body};
+            const userData={...req.body,password:secPass};
             delete userData.password;
             const encData=userData.email;
             jwt.sign({encData},ENC_KEY,(err,token)=>{
@@ -55,25 +60,37 @@ app.post('/register',async (req,res)=>
 app.post('/login',async (req,res)=>{
     try{
        // console.log(req.body);
-        const user=await User.findOne(req.body);
+        // const salt=await bcrypt.genSalt(10);
+        // const secPass=await bcrypt.hash(req.body.password,salt);
+        // console.log('login',secPass);
+        const user=await User.findOne({email:req.body.email});
         //console.log(req.body,user);
         if(user!=null&&req.body.email&&req.body.password)
         {
-            console.log("inside if")
-            const userData={...req.body};
-            delete userData.password;
-            const encData=userData.email;
-            jwt.sign({encData},ENC_KEY,(err,token)=>{
-                if(err)
-                {
-                    res.status(500).json({"message":"server side error !!!"});
-                }
-                else
-                {
-                    console.log("accessToken",token);
-                    res.status(200).json({...userData,accessToken:token});
-                }
-            })
+            const verify=await bcrypt.compare(req.body.password,user.password);
+            if(verify)
+            {
+                console.log("inside if")
+                const userData={...req.body};
+                delete userData.password;
+                const encData=userData.email;
+                jwt.sign({encData},ENC_KEY,(err,token)=>{
+                    if(err)
+                    {
+                        res.status(500).json({"message":"server side error !!!"});
+                    }
+                    else
+                    {
+                        console.log("accessToken",token);
+                        res.status(200).json({...userData,accessToken:token});
+                    }
+                })
+            }
+            else
+            {
+                 res.status(401).json({'message':'invalid credentials'});
+            }
+           
         }
         else{
         res.status(401).json({'message':'invalid credentials'});
